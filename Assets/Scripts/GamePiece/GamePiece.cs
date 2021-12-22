@@ -8,7 +8,7 @@ public class GamePiece : MonoBehaviour, IInitializable
     public int posX;
     public int posY;
 
-    public void Initialize(Vector2 position)
+    public void Initialize(Vector2 position, Board board)
     {
         posX = (int)position.x;
         posY = (int)position.y;

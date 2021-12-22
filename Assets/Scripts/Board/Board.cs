@@ -14,6 +14,9 @@ public class Board : MonoBehaviour
     Tile[,] spawnedTiles;
     GamePiece[,] spawnedPieces;
 
+    Tile dragStartTile;
+    Tile dragEndTile;
+
     private void Start()
     {
         spawnedTiles = new Tile[width, height];
@@ -30,7 +33,7 @@ public class Board : MonoBehaviour
             {
                 var spawnedTile = Instantiate(tilePrefab, new Vector2(i, j), Quaternion.identity, transform);
                 spawnedTiles[i, j] = spawnedTile.GetComponent<Tile>();
-                spawnedTile.GetComponent<Tile>().Initialize(new Vector2(i, j));
+                spawnedTile.GetComponent<Tile>().Initialize(new Vector2(i, j), this);
             }
         }
         FillBoard();
@@ -40,16 +43,19 @@ public class Board : MonoBehaviour
     {
         foreach (var tile in spawnedTiles)
         {
+            List<GamePiece> checkListDown = new List<GamePiece>();
+            List<GamePiece> checkListLeft = new List<GamePiece>();
+
             var spawnedPiece = RandomPiece(tile);
             var maxit = 100;
             var it = 0;
-            Debug.Log(CheckForMatches(spawnedPiece) + tile.gameObject.name);
 
-            while (CheckForMatches(spawnedPiece))
+            while (CheckForMatchesAtStart(spawnedPiece, checkListDown, checkListLeft))
             {
                 it++;
-                //GamePiecePooler.Instance.RequeuePiece(spawnedPiece.gameObject);
-                Destroy(spawnedPiece.gameObject);
+                GamePiecePooler.Instance.RequeuePiece(spawnedPiece.gameObject);
+                checkListDown.Clear();
+                checkListLeft.Clear();
                 if (it < maxit)
                 {
                     spawnedPiece = RandomPiece(tile);
@@ -57,6 +63,7 @@ public class Board : MonoBehaviour
                 else
                 {
                     Debug.Log("looped too many times");
+                    break;
                 }
             }
         }
@@ -66,69 +73,87 @@ public class Board : MonoBehaviour
     {
         var randPiece = (GamePieceType)Random.Range(0, 4);
         var spawnedPiece = GamePiecePooler.Instance.SpawnFromPool(randPiece, tile.transform.position);
+        spawnedPiece.GetComponent<GamePiece>().Initialize(new Vector2(tile.posX, tile.posY), this);
         spawnedPieces[tile.posX, tile.posY] = spawnedPiece.GetComponent<GamePiece>();
-        spawnedPiece.GetComponent<GamePiece>().Initialize(tile.transform.position);
         return spawnedPiece;
     }
 
-    private bool CheckForMatches(GamePiece spawnedPiece)
+    private bool CheckForMatchesAtStart(GamePiece spawnedPiece, List<GamePiece> matchingPiecesDown, List<GamePiece> matchingPiecesLeft)
     {
-        List<GamePiece> matchingPiecesDown = new List<GamePiece>();
-        List<GamePiece> matchingPiecesLeft = new List<GamePiece>();
-
         if (spawnedPiece.posY != 0)
         {
+            Debug.Log("checking y" + spawnedPiece.gameObject.name);
+            GamePiece nextPieceY;
             for (int i = spawnedPiece.posY; i > 0; i--)
             {
-                var nextPiece = spawnedPieces[spawnedPiece.posX, i];
-                if (nextPiece != null)
+                nextPieceY = spawnedPieces[spawnedPiece.posX, i];
+                if (nextPieceY != null)
                 {
-                    if (nextPiece.Type == spawnedPiece.Type)
+                    if (nextPieceY.Type == spawnedPiece.Type)
                     {
-                        matchingPiecesDown.Add(nextPiece);
+                        matchingPiecesDown.Add(nextPieceY);
+                        Debug.Log("found y match at " + spawnedPiece.gameObject.name);
                     }
                     else
                     {
+                        Debug.Log("break at y" + spawnedPiece.gameObject.name);
                         break;
                     }
                 }
                 else
                 {
                     Debug.Log("Next Piece PosY was null");
+                    break;
                 }
             }
         }
 
         if (spawnedPiece.posX != 0)
         {
+            Debug.Log("checking x" + spawnedPiece.gameObject.name);
+            GamePiece nextPieceX;
             for (int j = spawnedPiece.posX; j > 0; j--)
             {
-                var nextPiece = spawnedPieces[j, spawnedPiece.posY];
-                if (nextPiece != null)
+                nextPieceX = spawnedPieces[j, spawnedPiece.posY];
+                if (nextPieceX != null)
                 {
-                    if (nextPiece.Type == spawnedPiece.Type)
+                    if (nextPieceX.Type == spawnedPiece.Type)
                     {
-                        matchingPiecesLeft.Add(nextPiece);
+                        matchingPiecesLeft.Add(nextPieceX);
+                        Debug.Log("found x match at " + spawnedPiece.gameObject.name);
                     }
                     else
                     {
+                        Debug.Log("break at x" + spawnedPiece.gameObject.name);
                         break;
                     }
                 }
                 else
                 {
                     Debug.Log("Next Piece PosX was null");
+                    break;
                 }
             }
         }
 
-        if (matchingPiecesDown.Count > 2 || matchingPiecesLeft.Count > 2)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return (matchingPiecesDown.Count >= 2 || matchingPiecesLeft.Count >= 2);
     }
+
+    public void SelectFromTile(Tile start)
+    {
+        dragStartTile = start;
+    }
+
+    public void SelectToTile(Tile end)
+    {
+        dragEndTile = end;
+    }
+
+    public void EndDrag()
+    {
+        dragStartTile = null;
+        dragEndTile = null;
+    }
+
+
 }

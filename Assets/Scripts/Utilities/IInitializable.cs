@@ -2,5 +2,5 @@ using UnityEngine;
 
 public interface IInitializable
 {
-    public void Initialize(Vector2 pos);
+    public void Initialize(Vector2 pos, Board board);
 }
