@@ -26,5 +26,7 @@ public class GamePiece : MonoBehaviour, IInitializable
             transform.position = Vector3.MoveTowards(transform.position, tile.transform.position, Time.deltaTime * 5f);
             yield return null;
         }
+        posX = tile.posX;
+        posY = tile.posY;
     }
 }

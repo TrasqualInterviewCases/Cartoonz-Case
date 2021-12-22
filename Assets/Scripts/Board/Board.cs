@@ -18,8 +18,12 @@ public class Board : MonoBehaviour
     Tile dragStartTile;
     Tile dragEndTile;
 
+    GamePiecePooler pooler;
+
     private void Start()
     {
+        pooler = GamePiecePooler.Instance;
+
         spawnedTiles = new Tile[width, height];
         spawnedPieces = new GamePiece[width, height];
         SpawnTiles();
@@ -54,7 +58,7 @@ public class Board : MonoBehaviour
             while (CheckForMatchesAtStart(spawnedPiece, checkListDown, checkListLeft))
             {
                 it++;
-                GamePiecePooler.Instance.RequeuePiece(spawnedPiece.gameObject);
+                pooler.RequeuePiece(spawnedPiece.gameObject);
                 checkListDown.Clear();
                 checkListLeft.Clear();
                 if (it < maxit)
@@ -73,7 +77,7 @@ public class Board : MonoBehaviour
     private GamePiece RandomPiece(Tile tile)
     {
         var randPiece = (GamePieceType)Random.Range(0, 4);
-        var spawnedPiece = GamePiecePooler.Instance.SpawnFromPool(randPiece, tile.transform.position);
+        var spawnedPiece = pooler.SpawnFromPool(randPiece, tile.transform.position);
         spawnedPiece.GetComponent<GamePiece>().Initialize(new Vector2(tile.posX, tile.posY), this);
         spawnedPieces[tile.posX, tile.posY] = spawnedPiece.GetComponent<GamePiece>();
         return spawnedPiece;
@@ -156,21 +160,20 @@ public class Board : MonoBehaviour
 
     private Tile GetCorrectedTile(Tile start, Tile end)
     {
-        Tile correctedTile = null;
-
+        
+        var pos = new Vector2();
         if (start.posX == end.posX)
         {
-            correctedTile.posX = start.posX;
-            correctedTile.posY = Mathf.Clamp((start.posY - end.posY), -1, 1);
+            pos.x = start.posX;
+            pos.y = Mathf.Clamp((start.posY - end.posY), -1, 1);
         }
 
         if (start.posY == end.posY)
         {
-            correctedTile.posX = Mathf.Clamp((start.posX - end.posX), -1, 1);
-            correctedTile.posY = start.posY;
+            pos.x = Mathf.Clamp((start.posX - end.posX), -1, 1);
+            pos.y = start.posY;
         }
-
-        return correctedTile;
+        return spawnedTiles[(int)pos.x, (int)pos.y];
     }
 
     public void EndDrag()
@@ -184,23 +187,121 @@ public class Board : MonoBehaviour
         var selectedPiece = spawnedPieces[start.posX, start.posY];
         var targetPiece = spawnedPieces[end.posX, end.posY];
 
-        if(selectedPiece != null && targetPiece != null)
+        if (selectedPiece != null && targetPiece != null)
         {
             StartCoroutine(selectedPiece.MoveCo(start));
             yield return StartCoroutine(targetPiece.MoveCo(end));
         }
 
-        //if found matches remove matches else move back to starting places
+        var selectedMatches = FindAllMatches(selectedPiece);
+        var targetMatches = FindAllMatches(targetPiece);
+
+        if(selectedMatches.Count == 0 && targetMatches.Count == 0)
+        {
+            StartCoroutine(selectedPiece.MoveCo(end));
+            yield return StartCoroutine(targetPiece.MoveCo(start));
+        }
+        else
+        {
+            DespawnPieces(selectedMatches);
+            DespawnPieces(targetMatches);
+        }
     }
 
-    private void FindMatches()
+    private List<GamePiece> FindAllMatches(GamePiece startPiece, int minCount = 3)
     {
+        var allMatches = new List<GamePiece>();
+        var upMatches = FindMatchesAtDirection(startPiece, new Vector2(0, 1), 3);
+        var downMatches = FindMatchesAtDirection(startPiece, new Vector2(0, -1), 3);
+        var leftMatches = FindMatchesAtDirection(startPiece, new Vector2(0, -1), 3);
+        var rightMatches = FindMatchesAtDirection(startPiece, new Vector2(0, 1), 3);
 
+        if(upMatches == null)
+        {
+            upMatches = new List<GamePiece>();
+        }
+
+        if (downMatches == null)
+        {
+            downMatches = new List<GamePiece>();
+        }
+
+        if (leftMatches == null)
+        {
+            leftMatches = new List<GamePiece>();
+        }
+
+        if (rightMatches == null)
+        {
+            rightMatches = new List<GamePiece>();
+        }
+
+        var horMatches = upMatches.Union(downMatches).ToList();
+        horMatches = horMatches.Count > minCount ? horMatches : null;
+
+        var verMatches = leftMatches.Union(rightMatches).ToList();
+        verMatches = verMatches.Count > minCount ? verMatches : null;
+
+        allMatches = horMatches.Union(verMatches).ToList();
+
+        return allMatches;
     }
 
-    private void FindMatchesAtDirection()
+    private List<GamePiece> FindMatchesAtDirection(GamePiece startPiece, Vector2 direction, int minCount = 3)
     {
+        var matches = new List<GamePiece>();
 
+        if (startPiece != null)
+        {
+            matches.Add(startPiece);
+        }
+        else { return null; }
+
+        int max = (width > height) ? width : height;
+
+        for (int i = 1; i < max - 1; i++)
+        {
+            var nextPos = new Vector2(startPiece.posX, startPiece.posY) + direction * i;
+
+            if (ValidatePosition(nextPos))
+            {
+                var nextPiece = spawnedPieces[(int)nextPos.x, (int)nextPos.y];
+                if (nextPiece != null)
+                {
+                    if (nextPiece.Type == startPiece.Type && !matches.Contains(nextPiece))
+                    {
+                        matches.Add(nextPiece);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (matches.Count >= minCount)
+        {
+            return matches;
+        }
+
+        return null;
     }
 
+    private bool ValidatePosition(Vector2 pos)
+    {
+        var x = pos.x;
+        var y = pos.y;
+
+        return (x >= 0 && x <= width && y >= 0 && y <= height);
+    }
+
+    private void DespawnPieces(List<GamePiece> matchedPieces)
+    {
+        if (matchedPieces == null) return;
+        foreach (var piece in matchedPieces)
+        {
+            pooler.RequeuePiece(piece.gameObject);
+        }
+    }
 }
