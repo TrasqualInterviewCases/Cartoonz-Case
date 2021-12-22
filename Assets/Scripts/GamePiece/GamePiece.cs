@@ -1,18 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class GamePiece : MonoBehaviour
+public class GamePiece : MonoBehaviour, IInitializable
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    [SerializeField] GamePieceType type;
+    public GamePieceType Type { get { return type; } }
 
-    // Update is called once per frame
-    void Update()
+    public int posX;
+    public int posY;
+
+    public void Initialize(Vector2 position)
     {
-        
+        posX = (int)position.x;
+        posY = (int)position.y;
+
+        transform.position = position;
+
+        gameObject.name = "piece: " + posX + ", " + posY;
     }
 }
