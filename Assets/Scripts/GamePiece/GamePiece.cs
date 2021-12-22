@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class GamePiece : MonoBehaviour, IInitializable
@@ -16,5 +17,14 @@ public class GamePiece : MonoBehaviour, IInitializable
         transform.position = position;
 
         gameObject.name = "piece: " + posX + ", " + posY;
+    }
+
+    public IEnumerator MoveCo(Tile tile)
+    {
+        while(transform.position != tile.transform.position)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, tile.transform.position, Time.deltaTime * 5f);
+            yield return null;
+        }
     }
 }

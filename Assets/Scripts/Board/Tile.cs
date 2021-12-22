@@ -21,7 +21,7 @@ public class Tile : MonoBehaviour, IInitializable
 	{
 		if (board != null)
 		{
-			board.SelectFromTile(this);
+			board.SelectStartTile(this);
 		}
 	}
 
@@ -29,7 +29,7 @@ public class Tile : MonoBehaviour, IInitializable
 	{
 		if (board != null)
 		{
-			board.SelectToTile(this);
+			board.SelectEndTile(this);
 		}
 	}
 

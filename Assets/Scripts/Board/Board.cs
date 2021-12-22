@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using System.Collections;
 
 public class Board : MonoBehaviour
 {
@@ -139,14 +140,37 @@ public class Board : MonoBehaviour
         return (matchingPiecesDown.Count >= 2 || matchingPiecesLeft.Count >= 2);
     }
 
-    public void SelectFromTile(Tile start)
+    public void SelectStartTile(Tile start)
     {
         dragStartTile = start;
     }
 
-    public void SelectToTile(Tile end)
+    public void SelectEndTile(Tile end)
     {
-        dragEndTile = end;
+        if (dragStartTile != null && end != null)
+        {
+            dragEndTile = GetCorrectedTile(dragStartTile, end);
+        }
+
+    }
+
+    private Tile GetCorrectedTile(Tile start, Tile end)
+    {
+        Tile correctedTile = null;
+
+        if (start.posX == end.posX)
+        {
+            correctedTile.posX = start.posX;
+            correctedTile.posY = Mathf.Clamp((start.posY - end.posY), -1, 1);
+        }
+
+        if (start.posY == end.posY)
+        {
+            correctedTile.posX = Mathf.Clamp((start.posX - end.posX), -1, 1);
+            correctedTile.posY = start.posY;
+        }
+
+        return correctedTile;
     }
 
     public void EndDrag()
@@ -155,5 +179,28 @@ public class Board : MonoBehaviour
         dragEndTile = null;
     }
 
+    private IEnumerator MovePieces(Tile start, Tile end)
+    {
+        var selectedPiece = spawnedPieces[start.posX, start.posY];
+        var targetPiece = spawnedPieces[end.posX, end.posY];
+
+        if(selectedPiece != null && targetPiece != null)
+        {
+            StartCoroutine(selectedPiece.MoveCo(start));
+            yield return StartCoroutine(targetPiece.MoveCo(end));
+        }
+
+        //if found matches remove matches else move back to starting places
+    }
+
+    private void FindMatches()
+    {
+
+    }
+
+    private void FindMatchesAtDirection()
+    {
+
+    }
 
 }
