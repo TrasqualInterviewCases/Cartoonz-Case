@@ -8,6 +8,7 @@ public class Board : MonoBehaviour
     [SerializeField] GameObject tilePrefab;
     [SerializeField] int height = 8;
     [SerializeField] int width = 8;
+    [SerializeField] float pieceMoveTime = 0.2f;
 
     public int Height { get { return height; } }
     public int Width { get { return width; } }
@@ -19,6 +20,8 @@ public class Board : MonoBehaviour
     Tile dragEndTile;
 
     GamePiecePooler pooler;
+
+    bool canDrag = true;
 
     private void Start()
     {
@@ -79,15 +82,20 @@ public class Board : MonoBehaviour
         var randPiece = (GamePieceType)Random.Range(0, 4);
         var spawnedPiece = pooler.SpawnFromPool(randPiece, tile.transform.position);
         spawnedPiece.GetComponent<GamePiece>().Initialize(new Vector2(tile.posX, tile.posY), this);
-        spawnedPieces[tile.posX, tile.posY] = spawnedPiece.GetComponent<GamePiece>();
+        SetPieceArray(spawnedPiece.GetComponent<GamePiece>(), tile.posX, tile.posY);
         return spawnedPiece;
+    }
+
+    public void SetPieceArray(GamePiece piece, int i, int j)
+    {
+        spawnedPieces[i, j] = piece;
     }
 
     private bool CheckForMatchesAtStart(GamePiece spawnedPiece, List<GamePiece> matchingPiecesDown, List<GamePiece> matchingPiecesLeft)
     {
         if (spawnedPiece.posY != 0)
         {
-            Debug.Log("checking y" + spawnedPiece.gameObject.name);
+            //Debug.Log("checking y" + spawnedPiece.gameObject.name);
             GamePiece nextPieceY;
             for (int i = spawnedPiece.posY; i > 0; i--)
             {
@@ -97,17 +105,17 @@ public class Board : MonoBehaviour
                     if (nextPieceY.Type == spawnedPiece.Type)
                     {
                         matchingPiecesDown.Add(nextPieceY);
-                        Debug.Log("found y match at " + spawnedPiece.gameObject.name);
+                        //Debug.Log("found y match at " + spawnedPiece.gameObject.name);
                     }
                     else
                     {
-                        Debug.Log("break at y" + spawnedPiece.gameObject.name);
+                        //Debug.Log("break at y" + spawnedPiece.gameObject.name);
                         break;
                     }
                 }
                 else
                 {
-                    Debug.Log("Next Piece PosY was null");
+                    //Debug.Log("Next Piece PosY was null");
                     break;
                 }
             }
@@ -115,7 +123,7 @@ public class Board : MonoBehaviour
 
         if (spawnedPiece.posX != 0)
         {
-            Debug.Log("checking x" + spawnedPiece.gameObject.name);
+            //Debug.Log("checking x" + spawnedPiece.gameObject.name);
             GamePiece nextPieceX;
             for (int j = spawnedPiece.posX; j > 0; j--)
             {
@@ -125,17 +133,17 @@ public class Board : MonoBehaviour
                     if (nextPieceX.Type == spawnedPiece.Type)
                     {
                         matchingPiecesLeft.Add(nextPieceX);
-                        Debug.Log("found x match at " + spawnedPiece.gameObject.name);
+                        //Debug.Log("found x match at " + spawnedPiece.gameObject.name);
                     }
                     else
                     {
-                        Debug.Log("break at x" + spawnedPiece.gameObject.name);
+                        //Debug.Log("break at x" + spawnedPiece.gameObject.name);
                         break;
                     }
                 }
                 else
                 {
-                    Debug.Log("Next Piece PosX was null");
+                    //Debug.Log("Next Piece PosX was null");
                     break;
                 }
             }
@@ -146,77 +154,96 @@ public class Board : MonoBehaviour
 
     public void SelectStartTile(Tile start)
     {
-        dragStartTile = start;
+        if (!canDrag) return;
+        if (dragStartTile == null)
+            dragStartTile = start;
     }
 
     public void SelectEndTile(Tile end)
     {
+        if (!canDrag) return;
         if (dragStartTile != null && end != null)
         {
             dragEndTile = GetCorrectedTile(dragStartTile, end);
         }
-
     }
 
     private Tile GetCorrectedTile(Tile start, Tile end)
     {
-        
         var pos = new Vector2();
         if (start.posX == end.posX)
         {
             pos.x = start.posX;
-            pos.y = Mathf.Clamp((start.posY - end.posY), -1, 1);
+            pos.y = start.posY + Mathf.Clamp((end.posY - start.posY), -1, 1);
         }
 
         if (start.posY == end.posY)
         {
-            pos.x = Mathf.Clamp((start.posX - end.posX), -1, 1);
+            pos.x = start.posX + Mathf.Clamp((end.posX - start.posX), -1, 1);
             pos.y = start.posY;
         }
-        return spawnedTiles[(int)pos.x, (int)pos.y];
+
+        return (start.posX != end.posX && start.posY != end.posY) ? null : spawnedTiles[(int)pos.x, (int)pos.y];
     }
 
     public void EndDrag()
     {
+        if (!canDrag) return;
+        if (dragStartTile != null && dragEndTile != null)
+            StartCoroutine(MovePieces(dragStartTile, dragEndTile));
         dragStartTile = null;
         dragEndTile = null;
     }
 
     private IEnumerator MovePieces(Tile start, Tile end)
     {
+
         var selectedPiece = spawnedPieces[start.posX, start.posY];
         var targetPiece = spawnedPieces[end.posX, end.posY];
 
         if (selectedPiece != null && targetPiece != null)
         {
-            StartCoroutine(selectedPiece.MoveCo(start));
-            yield return StartCoroutine(targetPiece.MoveCo(end));
-        }
+            if (selectedPiece.Type == targetPiece.Type) yield break;
 
-        var selectedMatches = FindAllMatches(selectedPiece);
-        var targetMatches = FindAllMatches(targetPiece);
+            canDrag = false;
+            StartCoroutine(selectedPiece.MoveCo(end, pieceMoveTime));
+            StartCoroutine(targetPiece.MoveCo(start, pieceMoveTime));
 
-        if(selectedMatches.Count == 0 && targetMatches.Count == 0)
-        {
-            StartCoroutine(selectedPiece.MoveCo(end));
-            yield return StartCoroutine(targetPiece.MoveCo(start));
-        }
-        else
-        {
-            DespawnPieces(selectedMatches);
-            DespawnPieces(targetMatches);
+
+            yield return new WaitForSeconds(pieceMoveTime + 0.1f);
+
+            var selectedMatches = FindAllMatches(selectedPiece);
+            Debug.Log(selectedMatches.Count);
+            var targetMatches = FindAllMatches(targetPiece);
+            Debug.Log(targetMatches.Count);
+
+            if (selectedMatches.Count == 0 && targetMatches.Count == 0)
+            {
+                StartCoroutine(selectedPiece.MoveCo(start, pieceMoveTime));
+                StartCoroutine(targetPiece.MoveCo(end, pieceMoveTime));
+                yield return new WaitForSeconds(pieceMoveTime + 0.1f);
+                canDrag = true;
+            }
+            else
+            {
+                DespawnPieces(selectedMatches);
+                DespawnPieces(targetMatches);
+
+                ReAdjustColumns(selectedMatches);
+                ReAdjustColumns(targetMatches);
+            }
         }
     }
 
     private List<GamePiece> FindAllMatches(GamePiece startPiece, int minCount = 3)
     {
         var allMatches = new List<GamePiece>();
-        var upMatches = FindMatchesAtDirection(startPiece, new Vector2(0, 1), 3);
-        var downMatches = FindMatchesAtDirection(startPiece, new Vector2(0, -1), 3);
-        var leftMatches = FindMatchesAtDirection(startPiece, new Vector2(0, -1), 3);
-        var rightMatches = FindMatchesAtDirection(startPiece, new Vector2(0, 1), 3);
+        var upMatches = FindMatchesAtDirection(startPiece, new Vector2(0, 1), 2);
+        var downMatches = FindMatchesAtDirection(startPiece, new Vector2(0, -1), 2);
+        var leftMatches = FindMatchesAtDirection(startPiece, new Vector2(-1, 0), 2);
+        var rightMatches = FindMatchesAtDirection(startPiece, new Vector2(1, 0), 2);
 
-        if(upMatches == null)
+        if (upMatches == null)
         {
             upMatches = new List<GamePiece>();
         }
@@ -237,10 +264,18 @@ public class Board : MonoBehaviour
         }
 
         var horMatches = upMatches.Union(downMatches).ToList();
-        horMatches = horMatches.Count > minCount ? horMatches : null;
+        horMatches = horMatches.Count >= minCount ? horMatches : null;
+        if (horMatches == null)
+        {
+            horMatches = new List<GamePiece>();
+        }
 
         var verMatches = leftMatches.Union(rightMatches).ToList();
-        verMatches = verMatches.Count > minCount ? verMatches : null;
+        verMatches = verMatches.Count >= minCount ? verMatches : null;
+        if (verMatches == null)
+        {
+            verMatches = new List<GamePiece>();
+        }
 
         allMatches = horMatches.Union(verMatches).ToList();
 
@@ -277,6 +312,10 @@ public class Board : MonoBehaviour
                         break;
                     }
                 }
+                else
+                {
+                    break;
+                }
             }
         }
 
@@ -293,7 +332,7 @@ public class Board : MonoBehaviour
         var x = pos.x;
         var y = pos.y;
 
-        return (x >= 0 && x <= width && y >= 0 && y <= height);
+        return (x >= 0 && x <= width - 1 && y >= 0 && y <= height - 1);
     }
 
     private void DespawnPieces(List<GamePiece> matchedPieces)
@@ -301,7 +340,52 @@ public class Board : MonoBehaviour
         if (matchedPieces == null) return;
         foreach (var piece in matchedPieces)
         {
+            spawnedPieces[piece.posX, piece.posY] = null;
             pooler.RequeuePiece(piece.gameObject);
         }
+    }
+
+    private void ReAdjustColumns(List<GamePiece> matches)
+    {
+        foreach (var column in ColumnsToReAdjust(matches))
+        {
+            ReAdjustColumn(column);
+        }
+    }
+
+    private void ReAdjustColumn(int column)
+    {
+        for (int i = 0; i < height - 1; i++)
+        {
+            if (spawnedPieces[column, i] == null)
+            {
+                for (int j = i + 1; j < height; j++)
+                {
+                    if (spawnedPieces[column, j] != null)
+                    {
+                        var movingPiece = spawnedPieces[column, j];
+                        StartCoroutine(movingPiece.MoveCo(spawnedTiles[column, i], 1f));
+                        movingPiece.posY = i;
+                        spawnedPieces[column, i] = spawnedPieces[column, j];
+                        spawnedPieces[column, j] = null;
+                        break;
+                    }
+                }
+            }
+        }
+        canDrag = true;
+    }
+
+    private List<int> ColumnsToReAdjust(List<GamePiece> matches)
+    {
+        List<int> columns = new List<int>();
+        foreach (var piece in matches)
+        {
+            if (!columns.Contains(piece.posX))
+            {
+                columns.Add(piece.posX);
+            }
+        }
+        return columns;
     }
 }

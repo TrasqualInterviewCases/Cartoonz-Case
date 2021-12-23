@@ -262,6 +262,7 @@ MonoBehaviour:
   tilePrefab: {fileID: 6075248234614024305, guid: 6d3a80b44625ca7468ebe0933b8751b4, type: 3}
   height: 8
   width: 8
+  pieceMoveTime: 0.2
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -409,54 +410,6 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1252246914}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2023085151
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2023085153}
-  - component: {fileID: 2023085152}
-  m_Layer: 0
-  m_Name: Spawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2023085152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2023085151}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bbee205494ee8434290b628ece4fe6d1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  spawnablePieces:
-  - {fileID: 3491709516105992648, guid: 02bb608dfc91f2f46b551a777e73180c, type: 3}
-  - {fileID: 1232087893994694948, guid: 146a7ddb96a926a4982fe250353b9240, type: 3}
-  - {fileID: 1342333287498162280, guid: 2ef99e97b07b1a948866d666dc7b4162, type: 3}
-  - {fileID: 6777426727993644181, guid: 7b21d0a2906a21846aec07acdc59ca66, type: 3}
---- !u!4 &2023085153
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2023085151}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}

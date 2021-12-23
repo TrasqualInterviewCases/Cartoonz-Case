@@ -9,24 +9,32 @@ public class GamePiece : MonoBehaviour, IInitializable
     public int posX;
     public int posY;
 
-    public void Initialize(Vector2 position, Board board)
+    Board board;
+
+    public void Initialize(Vector2 position, Board _board)
     {
         posX = (int)position.x;
         posY = (int)position.y;
+        board = _board;
 
         transform.position = position;
 
         gameObject.name = "piece: " + posX + ", " + posY;
     }
 
-    public IEnumerator MoveCo(Tile tile)
+    public IEnumerator MoveCo(Tile tile, float moveTime)
     {
-        while(transform.position != tile.transform.position)
+        var curTime = 0f;
+
+        while (transform.position != tile.transform.position)
         {
-            transform.position = Vector3.MoveTowards(transform.position, tile.transform.position, Time.deltaTime * 5f);
+            curTime += Time.deltaTime;
+            var t = Mathf.Clamp(curTime / moveTime, 0f, 1f);
+            transform.position = Vector3.MoveTowards(transform.position, tile.transform.position, t);
             yield return null;
         }
         posX = tile.posX;
         posY = tile.posY;
+        board.SetPieceArray(this, posX, posY);
     }
 }
