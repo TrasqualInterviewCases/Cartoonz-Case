@@ -332,14 +332,17 @@ public class Board : MonoBehaviour
         return (x >= 0 && x <= width - 1 && y >= 0 && y <= height - 1);
     }
 
-    private void DespawnPieces(List<GamePiece> matchedPieces)
+    private List<Tile> DespawnPieces(List<GamePiece> matchedPieces)
     {
-        if (matchedPieces == null) return;
+        if (matchedPieces == null) return null;
+        List<Tile> emptyTiles = new List<Tile>();
         foreach (var piece in matchedPieces)
         {
             spawnedPieces[piece.posX, piece.posY] = null;
+            emptyTiles.Add(spawnedTiles[piece.posX, piece.posY]);
             pooler.RequeuePiece(piece.gameObject);
         }
+        return emptyTiles;
     }
 
     private List<GamePiece> ReAdjustColumns(List<GamePiece> matches)
@@ -376,7 +379,7 @@ public class Board : MonoBehaviour
             }
         }
         canDrag = true;
-        return movedPieces;        
+        return movedPieces;
     }
 
     private List<int> ColumnsToReAdjust(List<GamePiece> matches)
@@ -396,6 +399,7 @@ public class Board : MonoBehaviour
     {
         List<GamePiece> allNewMatches = new List<GamePiece>();
         List<GamePiece> movedPieces;
+
         DespawnPieces(matches);
         yield return new WaitForSeconds(0.25f);
         movedPieces = ReAdjustColumns(matches);
@@ -407,24 +411,74 @@ public class Board : MonoBehaviour
         {
             var newMatches = FindAllMatches(piece);
             allNewMatches = allNewMatches.Union(newMatches).ToList();
-            Debug.Log(allNewMatches.Count);
+            //Debug.Log(allNewMatches.Count);
         }
-        if(allNewMatches.Count > 0)
+        if (allNewMatches.Count > 0)
         {
             StartCoroutine(DespawnAndReAdjust(allNewMatches));
         }
-        canDrag = true;
+        else
+        {
+            StartCoroutine(RespawnPieces(FindEmptyTiles()));
+            canDrag = true;
+        }
     }
 
     private bool AdjustmentCompleted(List<GamePiece> movingPieces)
     {
         foreach (var piece in movingPieces)
         {
-            if(piece != null)
+            if (piece != null)
             {
                 if (piece.isMoving) return false;
-            }            
+            }
         }
         return true;
+    }
+
+    private IEnumerator RespawnPieces(List<Tile> emptyTiles)
+    {
+        List<GamePiece> newSpawns = new List<GamePiece>();
+        foreach (var emptyTile in emptyTiles)
+        {
+            var spawnedNewPiece = RandomPiece(emptyTile);
+            spawnedNewPiece.transform.position = new Vector2(emptyTile.posX, height + 1);
+            StartCoroutine(spawnedNewPiece.MoveCo(emptyTile, 5f));
+            spawnedNewPiece.posY = emptyTile.posY;
+            spawnedPieces[spawnedNewPiece.posX, spawnedNewPiece.posY] = spawnedNewPiece;
+            newSpawns.Add(spawnedNewPiece.GetComponent<GamePiece>());
+        }
+        while (!AdjustmentCompleted(newSpawns))
+        {
+            yield return null;
+        }
+        List<GamePiece> newSpawnMatches = new List<GamePiece>();
+        foreach (var piece in newSpawns)
+        {
+            newSpawnMatches = newSpawnMatches.Union(FindAllMatches(piece)).ToList();
+        }
+        //Debug.Log(newSpawnMatches.Count);
+        if (newSpawnMatches.Count > 0)
+        {
+            StartCoroutine(DespawnAndReAdjust(newSpawnMatches));
+        }
+    }
+
+    List<Tile> FindEmptyTiles()
+    {
+        List<Tile> emptyTiles = new List<Tile>();
+        for (int i = 0; i < width; i++)
+        {
+            for (int j = 0; j < height; j++)
+            {
+                if (spawnedPieces[i, j] == null)
+                {
+                    emptyTiles.Add(spawnedTiles[i, j]);
+                }
+            }
+
+        }
+
+        return emptyTiles;
     }
 }
