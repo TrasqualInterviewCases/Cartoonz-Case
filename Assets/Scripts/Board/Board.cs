@@ -365,7 +365,7 @@ public class Board : MonoBehaviour
                     if (spawnedPieces[column, j] != null)
                     {
                         var movingPiece = spawnedPieces[column, j];
-                        StartCoroutine(movingPiece.MoveCo(spawnedTiles[column, i], 1f));
+                        StartCoroutine(movingPiece.MoveCo(spawnedTiles[column, i], 5f));
                         movingPiece.posY = i;
                         spawnedPieces[column, i] = spawnedPieces[column, j];
                         spawnedPieces[column, j] = null;
@@ -399,7 +399,10 @@ public class Board : MonoBehaviour
         DespawnPieces(matches);
         yield return new WaitForSeconds(0.25f);
         movedPieces = ReAdjustColumns(matches);
-        yield return new WaitForSeconds(0.25f);
+        while (!AdjustmentCompleted(movedPieces))
+        {
+            yield return null;
+        }
         foreach (var piece in movedPieces)
         {
             var newMatches = FindAllMatches(piece);
@@ -411,5 +414,17 @@ public class Board : MonoBehaviour
             StartCoroutine(DespawnAndReAdjust(allNewMatches));
         }
         canDrag = true;
+    }
+
+    private bool AdjustmentCompleted(List<GamePiece> movingPieces)
+    {
+        foreach (var piece in movingPieces)
+        {
+            if(piece != null)
+            {
+                if (piece.isMoving) return false;
+            }            
+        }
+        return true;
     }
 }

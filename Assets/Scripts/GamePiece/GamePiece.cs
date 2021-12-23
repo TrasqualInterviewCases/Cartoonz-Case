@@ -8,6 +8,7 @@ public class GamePiece : MonoBehaviour, IInitializable
 
     public int posX;
     public int posY;
+    public bool isMoving;
 
     Board board;
 
@@ -25,7 +26,7 @@ public class GamePiece : MonoBehaviour, IInitializable
     public IEnumerator MoveCo(Tile tile, float moveTime)
     {
         var curTime = 0f;
-
+        isMoving = true;
         while (transform.position != tile.transform.position)
         {
             curTime += Time.deltaTime;
@@ -33,8 +34,10 @@ public class GamePiece : MonoBehaviour, IInitializable
             transform.position = Vector3.MoveTowards(transform.position, tile.transform.position, t);
             yield return null;
         }
+        transform.position = tile.transform.position;
         posX = tile.posX;
         posY = tile.posY;
         board.SetPieceArray(this, posX, posY);
+        isMoving = false;
     }
 }
