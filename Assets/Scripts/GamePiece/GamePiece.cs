@@ -25,6 +25,7 @@ public class GamePiece : MonoBehaviour, IInitializable
 
     public IEnumerator MoveCo(Tile tile, float moveTime)
     {
+        if (isMoving) yield break;
         var curTime = 0f;
         isMoving = true;
         while (transform.position != tile.transform.position)

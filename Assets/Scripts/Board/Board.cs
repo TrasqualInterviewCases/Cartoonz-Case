@@ -378,7 +378,6 @@ public class Board : MonoBehaviour
                 }
             }
         }
-        canDrag = true;
         return movedPieces;
     }
 
@@ -420,7 +419,6 @@ public class Board : MonoBehaviour
         else
         {
             StartCoroutine(RespawnPieces(FindEmptyTiles()));
-            canDrag = true;
         }
     }
 
@@ -461,6 +459,10 @@ public class Board : MonoBehaviour
         if (newSpawnMatches.Count > 0)
         {
             StartCoroutine(DespawnAndReAdjust(newSpawnMatches));
+        }
+        else
+        {
+            canDrag = true;
         }
     }
 
