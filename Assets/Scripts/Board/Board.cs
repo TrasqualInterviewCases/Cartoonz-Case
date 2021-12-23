@@ -213,9 +213,9 @@ public class Board : MonoBehaviour
             yield return new WaitForSeconds(pieceMoveTime + 0.1f);
 
             var selectedMatches = FindAllMatches(selectedPiece);
-            Debug.Log(selectedMatches.Count);
+            //Debug.Log(selectedMatches.Count);
             var targetMatches = FindAllMatches(targetPiece);
-            Debug.Log(targetMatches.Count);
+            //Debug.Log(targetMatches.Count);
 
             if (selectedMatches.Count == 0 && targetMatches.Count == 0)
             {
@@ -226,11 +226,8 @@ public class Board : MonoBehaviour
             }
             else
             {
-                DespawnPieces(selectedMatches);
-                DespawnPieces(targetMatches);
-
-                ReAdjustColumns(selectedMatches);
-                ReAdjustColumns(targetMatches);
+                var allmatches = selectedMatches.Union(targetMatches).ToList();
+                StartCoroutine(DespawnAndReAdjust(allmatches));
             }
         }
     }
@@ -345,16 +342,20 @@ public class Board : MonoBehaviour
         }
     }
 
-    private void ReAdjustColumns(List<GamePiece> matches)
+    private List<GamePiece> ReAdjustColumns(List<GamePiece> matches)
     {
+        List<GamePiece> allMovedPieces = new List<GamePiece>();
         foreach (var column in ColumnsToReAdjust(matches))
         {
-            ReAdjustColumn(column);
+            allMovedPieces = allMovedPieces.Union(ReAdjustColumn(column)).ToList();
         }
+        return allMovedPieces;
     }
 
-    private void ReAdjustColumn(int column)
+    private List<GamePiece> ReAdjustColumn(int column)
     {
+        var movedPieces = new List<GamePiece>();
+
         for (int i = 0; i < height - 1; i++)
         {
             if (spawnedPieces[column, i] == null)
@@ -368,12 +369,14 @@ public class Board : MonoBehaviour
                         movingPiece.posY = i;
                         spawnedPieces[column, i] = spawnedPieces[column, j];
                         spawnedPieces[column, j] = null;
+                        movedPieces.Add(movingPiece);
                         break;
                     }
                 }
             }
         }
         canDrag = true;
+        return movedPieces;        
     }
 
     private List<int> ColumnsToReAdjust(List<GamePiece> matches)
@@ -387,5 +390,26 @@ public class Board : MonoBehaviour
             }
         }
         return columns;
+    }
+
+    private IEnumerator DespawnAndReAdjust(List<GamePiece> matches)
+    {
+        List<GamePiece> allNewMatches = new List<GamePiece>();
+        List<GamePiece> movedPieces;
+        DespawnPieces(matches);
+        yield return new WaitForSeconds(0.25f);
+        movedPieces = ReAdjustColumns(matches);
+        yield return new WaitForSeconds(0.25f);
+        foreach (var piece in movedPieces)
+        {
+            var newMatches = FindAllMatches(piece);
+            allNewMatches = allNewMatches.Union(newMatches).ToList();
+            Debug.Log(allNewMatches.Count);
+        }
+        if(allNewMatches.Count > 0)
+        {
+            StartCoroutine(DespawnAndReAdjust(allNewMatches));
+        }
+        canDrag = true;
     }
 }
